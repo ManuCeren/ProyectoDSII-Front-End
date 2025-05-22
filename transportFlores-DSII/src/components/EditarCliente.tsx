@@ -59,6 +59,10 @@ export function EditarCliente(){
          const volver=()=>{
             navigate("/")
         }
+        const listar=()=>{
+            navigate("/clientelista")
+        }
+
 
     return(
          <Container className="mt-5">
@@ -88,8 +92,19 @@ export function EditarCliente(){
                             <Input type ="text" name="tipoCliente" onChange={inputChangevalue} value={cliente.tipoCliente}/>
                         </FormGroup>
                     </Form>
-                    <Button color="primary" className="me-4" onClick={guardar}>Guardar</Button>
-                    <Button color="secondary" onClick={volver}>Volver</Button>
+                    <div className="d-flex justify-content-center gap-3 mt-4">
+                        <Button color="primary" onClick={guardar}>
+                            <i className="bi bi-save me-1"></i> Guardar
+                        </Button>
+
+                        <Button color="info" onClick={listar}>
+                            <i className="bi bi-card-list me-1"></i> Volver
+                        </Button>
+
+                        <Button color="secondary" onClick={volver}>
+                            <i className="bi bi-house-door me-1"></i> Inicio
+                        </Button>
+                    </div>
                 </Col>
             </Row>
         </Container>

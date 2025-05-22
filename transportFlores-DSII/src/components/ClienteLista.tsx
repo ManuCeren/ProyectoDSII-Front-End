@@ -13,7 +13,7 @@ export function ClienteLista(){
         const response = await fetch(`${appsettings.apiUrl}Cliente/Lista`);
         if (response.ok) {
             const data = await response.json();
-            console.log("Clientes recibidos:", data); // 👈
+            console.log("Clientes recibidos:", data); 
             setClientes(data);
         } else {
             console.error("Error en la respuesta:", response.status);
@@ -22,9 +22,9 @@ export function ClienteLista(){
         console.error("Error al obtener clientes:", error);
     }
 }
-    useEffect(()=>{
-        obtenerClientes()
-    },[])
+useEffect(()=>{
+     obtenerClientes()
+},[])
 
     const Eliminar = (id:number)=>{
             Swal.fire({
@@ -47,10 +47,18 @@ export function ClienteLista(){
         <Container className="mt-5">
             <Row>
                 <Col sm={{size:8,offset:2}}>
-                   <h4>Lista clientes</h4>
-                   <hr />
-                   <Link className="btn btn-success mb-3" to="/nuevocliente">Nuevo Cliente</Link>
-                   <Table bordered>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <h4 className="m-0">Lista de Clientes</h4>
+                        <div className="d-flex gap-2">
+                            <Link to="/" className="btn btn-secondary btn-sm shadow-sm">
+                            <i className="bi bi-house-door me-2"></i> Inicio
+                            </Link>
+                            <Link to="/nuevocliente" className="btn btn-success btn-sm shadow-sm">
+                            <i className="bi bi-plus-circle me-2"></i> Nuevo Cliente
+                            </Link>
+                        </div>
+                    </div>
+                   <Table bordered hover responsive className="align-middle text-center table-striped table-bordered">
                         <thead>
                             <tr>
                                 <th>Nombre</th>
@@ -70,10 +78,14 @@ export function ClienteLista(){
                                     <td>{item.email}</td>
                                     <td>{item.tipoCliente}</td>
                                     <td>
-                                        <Link className="btn btn-primary me-2" to={`/editarcliente/${item.idClientes}`} >Editar</Link>
-                                        <Button color="danger" onClick={()=>{Eliminar(item.idClientes!)}}>
-                                            Eliminar
-                                        </Button>
+                                        <div className="d-flex justify-content-center gap-2">
+                                            <Link className="btn btn-sm btn-primary" to={`/editarcliente/${item.idClientes}`}>
+                                            <i className="bi bi-pencil-square me-1"></i>
+                                            </Link>
+                                            <Button size="sm" color="danger" onClick={() => Eliminar(item.idClientes!)}>
+                                            <i className="bi bi-trash me-1"></i>
+                                            </Button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
