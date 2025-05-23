@@ -4,7 +4,9 @@ import { Link } from 'react-router-dom';
 export default function Sidebar() {
   return (
     <div className="bg-dark text-white vh-100 p-3" style={{ width: '250px' }}>
-      <h4 className="mb-4">🚛 Transporte Flores</h4>
+      <h3 className="mb-4 text-nowrap overflow-hidden text-truncate">
+        🚛Transporte Flores
+      </h3>
       <ul className="nav flex-column">
         <li className="nav-item mb-2">
           <Link to="/" className="nav-link text-white">Inicio</Link>
