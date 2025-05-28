@@ -7,6 +7,7 @@ export interface IEnvios{
     estado: string,
     mercancia: string,
     pesoTotal: number,
-    volumenTotal: number
+    volumenTotal: number,
+    costoEnvio: number
 
 }

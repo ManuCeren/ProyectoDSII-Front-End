@@ -37,7 +37,8 @@ export function EnviosModal({
     estado: envio?.estado ?? "",
     mercancia: envio?.mercancia ?? "",
     pesoTotal: envio?.pesoTotal ?? 0,
-    volumenTotal: envio?.volumenTotal ?? 0
+    volumenTotal: envio?.volumenTotal ?? 0,
+    costoEnvio: envio?.costoEnvio ?? 0
   });
 
   useEffect(() => {
@@ -53,7 +54,8 @@ export function EnviosModal({
         estado: "",
         mercancia: "",
         pesoTotal: 0,
-        volumenTotal: 0
+        volumenTotal: 0,
+        costoEnvio: 0
       });
     }
   }, [envio, isOpen]);
@@ -189,6 +191,17 @@ export function EnviosModal({
               id="volumenTotal"
               name="volumenTotal"
               value={formData.volumenTotal}
+              onChange={handleChange}
+            />
+          </FormGroup>
+          <FormGroup>
+            <Label for="costoEnvio">Costo Envio ($)</Label>
+            <Input
+              type="number"
+              step="0.01"
+              id="costoEnvio"
+              name="costoEnvio"
+              value={formData.costoEnvio}
               onChange={handleChange}
             />
           </FormGroup>

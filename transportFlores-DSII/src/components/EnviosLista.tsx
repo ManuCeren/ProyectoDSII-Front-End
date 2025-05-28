@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { appsettings } from "../settings/appsettings";
 import Swal from "sweetalert2";
 import type { IEnvios } from "../Interfaces/IEnvios";
+import type { IVistaEnvio } from "../Interfaces/IVistaEnvio";
 import { Container, Row, Col, Table, Button } from "reactstrap";
 import { EnviosModal } from "./EnviosModal";
 import "bootstrap-icons/font/bootstrap-icons.css";
@@ -12,7 +13,7 @@ interface EnviosListaProps {
 }
 
 export function EnviosLista({ handleViewChange }: EnviosListaProps) {
-  const [envios, setEnvios] = useState<IEnvios[]>([]);
+  const [envios, setEnvios] = useState<IVistaEnvio[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEnvio, setSelectedEnvio] = useState<IEnvios>();
 
@@ -20,7 +21,7 @@ export function EnviosLista({ handleViewChange }: EnviosListaProps) {
 
   const obtenerEnvios = async () => {
     try {
-      const response = await fetch(`${appsettings.apiUrl}Envio/Lista`);
+      const response = await fetch(`${appsettings.apiUrl}Envio/VistaDetallada`);
       if (response.ok) {
         setEnvios(await response.json());
       }
@@ -38,9 +39,13 @@ export function EnviosLista({ handleViewChange }: EnviosListaProps) {
     toggleModal();
   };
 
-  const onEditar = (envio: IEnvios) => {
-    setSelectedEnvio(envio);
-    toggleModal();
+  const onEditar = (idEnvios: number) => {
+    fetch(`${appsettings.apiUrl}Envio/Obtener/${idEnvios}`)
+    .then(res => res.json())
+    .then(data => {
+      setSelectedEnvio(data);
+      toggleModal();
+    });
   };
 
   const Eliminar = (id: number) => {
@@ -99,26 +104,28 @@ export function EnviosLista({ handleViewChange }: EnviosListaProps) {
                 <th>Mercancía</th>
                 <th>Peso (kg)</th>
                 <th>Volumen (m³)</th>
+                <th>Costo ($)</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {envios.map((item) => (
                 <tr key={item.idEnvios}>
-                  <td>{item.idCliente}</td>
-                  <td>{item.idRuta}</td>
-                  <td>{item.fechaSolicitud}</td>
-                  <td>{item.fechaEntregaEsperada}</td>
-                  <td>{item.estado}</td>
-                  <td>{item.mercancia}</td>
-                  <td>{item.pesoTotal}</td>
-                  <td>{item.volumenTotal}</td>
+                    <td>{item.cliente}</td>
+                    <td>{item.origen} → {item.destino}</td>
+                    <td>{item.fechaSolicitud}</td>
+                    <td>{item.fechaEntregaEsperada}</td>
+                    <td>{item.estado}</td>
+                    <td>{item.mercancia}</td>
+                    <td>{item.peso}</td>
+                    <td>{item.volumen}</td>
+                    <td>{item.costo}</td>
                   <td>
                     <div className="d-flex justify-content-center gap-2">
                       <Button
                         size="sm"
                         color="primary"
-                        onClick={() => onEditar(item)}
+                        onClick={() => onEditar(item.idEnvios)}
                       >
                         <i className="bi bi-pencil-square" />
                       </Button>
