@@ -16,32 +16,22 @@ interface EnviosListaProps {
 const acortarNombreLugar = (nombreCompleto: string): string => {
   if (!nombreCompleto) return nombreCompleto;
   
-  
   const partes = nombreCompleto.split(', ');
-  
-  
   const indexElSalvador = partes.findIndex(parte => parte.includes('El Salvador'));
   
   if (indexElSalvador >= 2) {
-   
     const ciudad = partes[indexElSalvador - 2];
     const departamento = partes[indexElSalvador - 1];
-    
-  
     const deptoLimpio = departamento.replace('Departamento de ', '');
-    
     return `${ciudad}, ${deptoLimpio}`;
   }
-  
   
   if (partes.length >= 2) {
     return `${partes[0]}, ${partes[1]}`;
   }
   
-  
   return nombreCompleto.length > 30 ? nombreCompleto.substring(0, 27) + '...' : nombreCompleto;
 };
-
 
 interface IVistaEnvioParaTabla extends IVistaEnvio {
   origenCorto: string;
@@ -55,6 +45,10 @@ export function EnviosLista({ handleViewChange }: EnviosListaProps) {
   const [selectedEnvio, setSelectedEnvio] = useState<IEnvios | undefined>();
   const [clientes, setClientes] = useState<ICliente[]>([]);
   const [rutas, setRutas] = useState<IRuta[]>([]);
+
+  // Estados para filtro de fechas
+  const [fechaInicio, setFechaInicio] = useState<string>("");
+  const [fechaFin, setFechaFin] = useState<string>("");
 
   const obtenerClientes = async () => {
     try {
@@ -82,7 +76,7 @@ export function EnviosLista({ handleViewChange }: EnviosListaProps) {
 
   const obtenerEnvios = async () => {
     try {
-      const response = await fetch(`${appsettings.apiUrl}Envio/VistaDetallada`);
+      const response = await fetch(`${appsettings.apiUrl}VistaEnvio/Lista`);
       if (response.ok) {
         const data: IVistaEnvio[] = await response.json();
 
@@ -104,7 +98,6 @@ export function EnviosLista({ handleViewChange }: EnviosListaProps) {
 
         setEnvios(enviosLimpios);
 
-        
         const enviosConNombresCortos: IVistaEnvioParaTabla[] = enviosLimpios.map(envio => ({
           ...envio,
           origenCorto: acortarNombreLugar(envio.origen),
@@ -140,14 +133,13 @@ export function EnviosLista({ handleViewChange }: EnviosListaProps) {
 
   // Función para convertir IVistaEnvio a IEnvios
   const convertirVistaEnvioAEnvios = (vistaEnvio: IVistaEnvio): IEnvios => {
-    // Función auxiliar para convertir fechas al formato correcto
     const formatearFecha = (fecha: string): string => {
       if (!fecha) return "";
       try {
         const fechaObj = new Date(fecha);
-        return fechaObj.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+        return fechaObj.toISOString().split('T')[0];
       } catch {
-        return fecha; 
+        return fecha;
       }
     };
 
@@ -173,16 +165,12 @@ export function EnviosLista({ handleViewChange }: EnviosListaProps) {
 
   const abrirModal = (envioTabla?: IVistaEnvioParaTabla) => {
     if (envioTabla) {
-      console.log("Envío original de la vista:", envioTabla);
-      
       const envioOriginal = envios.find(e => e.idEnvios === envioTabla.idEnvios);
       if (envioOriginal) {
         const envioConvertido = convertirVistaEnvioAEnvios(envioOriginal);
-        console.log("Envío convertido para el modal:", envioConvertido);
         setSelectedEnvio(envioConvertido);
       }
     } else {
-      console.log("Abriendo modal para nuevo envío");
       setSelectedEnvio(undefined);
     }
     setModalOpen(true);
@@ -192,6 +180,70 @@ export function EnviosLista({ handleViewChange }: EnviosListaProps) {
     setSelectedEnvio(undefined);
     setModalOpen(false);
   };
+
+  // Función para generar reporte CSV filtrado por fechas
+  const generarReporte = () => {
+  if (!fechaInicio || !fechaFin) {
+    Swal.fire("Error", "Debe seleccionar ambas fechas", "error");
+    return;
+  }
+
+  const inicio = new Date(fechaInicio);
+  const fin = new Date(fechaFin);
+
+  const filtrados = enviosParaTabla.filter(envio => {
+    const fechaEnvio = new Date(envio.fechaEntregaEsperada);
+    return fechaEnvio >= inicio && fechaEnvio <= fin;
+  });
+
+  if (filtrados.length === 0) {
+    Swal.fire("Sin resultados", "No hay envíos en ese rango de fechas", "info");
+    return;
+  }
+
+  const escapeCsv = (text: string | number) => {
+    const str = text?.toString() ?? "";
+    // Doble comillas internas y poner todo entre comillas
+    return `"${str.replace(/"/g, '""')}"`;
+  };
+
+  const csvHeader = [
+    "Cliente",
+    "Origen",
+    "Destino",
+    "Fecha Solicitud",
+    "Fecha Entrega Esperada",
+    "Estado",
+    "Mercancia",
+    "Peso (kg)",
+    "Volumen (m³)",
+    "Costo Envio",
+  ].join(";");
+
+  const csvRows = filtrados.map(e => [
+    escapeCsv(e.cliente),
+    escapeCsv(e.origenCorto),
+    escapeCsv(e.destinoCorto),
+    escapeCsv(e.fechaSolicitud),
+    escapeCsv(e.fechaEntregaEsperada),
+    escapeCsv(e.estado),
+    escapeCsv(e.mercancia),
+    e.peso,   // Números no necesitan comillas
+    e.volumen,
+    e.costo,
+  ].join(";"));
+
+  const csvContent = [csvHeader, ...csvRows].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", `reporte_envios_${fechaInicio}_a_${fechaFin}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
   return (
     <div className="mt-2">
@@ -213,7 +265,34 @@ export function EnviosLista({ handleViewChange }: EnviosListaProps) {
         </div>
       </div>
 
-      
+      {/* Filtro por fechas para reporte */}
+      <div className="mb-3 px-3 d-flex align-items-center gap-2">
+        <label>
+          Fecha inicio:{" "}
+          <input 
+            type="date" 
+            value={fechaInicio} 
+            onChange={e => setFechaInicio(e.target.value)} 
+          />
+        </label>
+        <label>
+          Fecha fin:{" "}
+          <input 
+            type="date" 
+            value={fechaFin} 
+            onChange={e => setFechaFin(e.target.value)} 
+          />
+        </label>
+        <Button 
+          color="primary" 
+          size="sm" 
+          onClick={() => generarReporte()}
+          disabled={!fechaInicio || !fechaFin}
+        >
+          Generar Reporte
+        </Button>
+      </div>
+
       <DataTable<IVistaEnvioParaTabla>
         data={enviosParaTabla}
         searchKeys={[
@@ -235,7 +314,6 @@ export function EnviosLista({ handleViewChange }: EnviosListaProps) {
           { 
             key: "origenCorto", 
             label: "Origen",
-            
             render: (item: IVistaEnvioParaTabla) => (
               <span title={item.origen}>
                 {item.origenCorto}
@@ -245,7 +323,6 @@ export function EnviosLista({ handleViewChange }: EnviosListaProps) {
           { 
             key: "destinoCorto", 
             label: "Destino",
-            
             render: (item: IVistaEnvioParaTabla) => (
               <span title={item.destino}>
                 {item.destinoCorto}
