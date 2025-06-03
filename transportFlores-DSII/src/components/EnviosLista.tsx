@@ -1,156 +1,278 @@
-// EnviosLista.tsx
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { appsettings } from "../settings/appsettings";
-import Swal from "sweetalert2";
-import type { IEnvios } from "../Interfaces/IEnvios";
 import type { IVistaEnvio } from "../Interfaces/IVistaEnvio";
-import { Container, Row, Col, Table, Button } from "reactstrap";
+import type { IEnvios } from "../Interfaces/IEnvios"; 
+import type { ICliente } from "../Interfaces/ICliente";
+import type { IRuta } from "../Interfaces/IRuta";
 import { EnviosModal } from "./EnviosModal";
-import "bootstrap-icons/font/bootstrap-icons.css";
+import { Button } from "reactstrap";
+import Swal from "sweetalert2";
+import { DataTable } from "./DataTable";
 
 interface EnviosListaProps {
-  handleViewChange: (view: 'dashboard') => void;
+  handleViewChange: (view: "dashboard") => void;
+}
+
+const acortarNombreLugar = (nombreCompleto: string): string => {
+  if (!nombreCompleto) return nombreCompleto;
+  
+  
+  const partes = nombreCompleto.split(', ');
+  
+  
+  const indexElSalvador = partes.findIndex(parte => parte.includes('El Salvador'));
+  
+  if (indexElSalvador >= 2) {
+   
+    const ciudad = partes[indexElSalvador - 2];
+    const departamento = partes[indexElSalvador - 1];
+    
+  
+    const deptoLimpio = departamento.replace('Departamento de ', '');
+    
+    return `${ciudad}, ${deptoLimpio}`;
+  }
+  
+  
+  if (partes.length >= 2) {
+    return `${partes[0]}, ${partes[1]}`;
+  }
+  
+  
+  return nombreCompleto.length > 30 ? nombreCompleto.substring(0, 27) + '...' : nombreCompleto;
+};
+
+
+interface IVistaEnvioParaTabla extends IVistaEnvio {
+  origenCorto: string;
+  destinoCorto: string;
 }
 
 export function EnviosLista({ handleViewChange }: EnviosListaProps) {
   const [envios, setEnvios] = useState<IVistaEnvio[]>([]);
+  const [enviosParaTabla, setEnviosParaTabla] = useState<IVistaEnvioParaTabla[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedEnvio, setSelectedEnvio] = useState<IEnvios>();
+  const [selectedEnvio, setSelectedEnvio] = useState<IEnvios | undefined>();
+  const [clientes, setClientes] = useState<ICliente[]>([]);
+  const [rutas, setRutas] = useState<IRuta[]>([]);
 
-  const toggleModal = () => setModalOpen(!modalOpen);
+  const obtenerClientes = async () => {
+    try {
+      const response = await fetch(`${appsettings.apiUrl}Cliente/Lista`);
+      if (response.ok) {
+        const data = await response.json();
+        setClientes(data);
+      }
+    } catch (error) {
+      console.error("Error al obtener clientes:", error);
+    }
+  };
+
+  const obtenerRutas = async () => {
+    try {
+      const response = await fetch(`${appsettings.apiUrl}Ruta/Lista`);
+      if (response.ok) {
+        const data = await response.json();
+        setRutas(data);
+      }
+    } catch (error) {
+      console.error("Error al obtener rutas:", error);
+    }
+  };
 
   const obtenerEnvios = async () => {
     try {
       const response = await fetch(`${appsettings.apiUrl}Envio/VistaDetallada`);
       if (response.ok) {
-        setEnvios(await response.json());
+        const data: IVistaEnvio[] = await response.json();
+
+        const enviosLimpios = data.map(e => ({
+          idEnvios: e.idEnvios,
+          idCliente: e.idCliente,
+          idRuta: e.idRuta,
+          fechaSolicitud: e.fechaSolicitud ?? "",
+          fechaEntregaEsperada: e.fechaEntregaEsperada ?? "",
+          estado: e.estado ?? "",
+          mercancia: e.mercancia ?? "",
+          peso: e.peso ?? 0,
+          volumen: e.volumen ?? 0,
+          cliente: e.cliente ?? "Desconocido",
+          origen: e.origen ?? "Desconocido",
+          destino: e.destino ?? "Desconocido",
+          costo: e.costo ?? 0,
+        }));
+
+        setEnvios(enviosLimpios);
+
+        
+        const enviosConNombresCortos: IVistaEnvioParaTabla[] = enviosLimpios.map(envio => ({
+          ...envio,
+          origenCorto: acortarNombreLugar(envio.origen),
+          destinoCorto: acortarNombreLugar(envio.destino),
+        }));
+
+        setEnviosParaTabla(enviosConNombresCortos);
       }
     } catch (error) {
       console.error("Error al obtener envíos:", error);
     }
   };
 
-  useEffect(() => {
-    obtenerEnvios();
-  }, []);
-
-  const onNuevo = () => {
-    setSelectedEnvio(undefined);
-    toggleModal();
-  };
-
-  const onEditar = (idEnvios: number) => {
-    fetch(`${appsettings.apiUrl}Envio/Obtener/${idEnvios}`)
-    .then(res => res.json())
-    .then(data => {
-      setSelectedEnvio(data);
-      toggleModal();
-    });
-  };
-
-  const Eliminar = (id: number) => {
-    Swal.fire({
+  const eliminarEnvio = async (id: number | string) => {
+    const confirm = await Swal.fire({
       title: "¿Estás seguro?",
-      text: "¡No podrás revertir esto!",
+      text: "¡Esta acción no se puede deshacer!",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Sí, eliminar"
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        const response = await fetch(`${appsettings.apiUrl}Envio/Eliminar/${id}`, {
-          method: "DELETE"
-        });
-        if (response.ok) obtenerEnvios();
-      }
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
     });
+
+    if (confirm.isConfirmed) {
+      const response = await fetch(`${appsettings.apiUrl}Envio/Eliminar/${id}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        obtenerEnvios();
+      }
+    }
+  };
+
+  // Función para convertir IVistaEnvio a IEnvios
+  const convertirVistaEnvioAEnvios = (vistaEnvio: IVistaEnvio): IEnvios => {
+    // Función auxiliar para convertir fechas al formato correcto
+    const formatearFecha = (fecha: string): string => {
+      if (!fecha) return "";
+      try {
+        const fechaObj = new Date(fecha);
+        return fechaObj.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+      } catch {
+        return fecha; 
+      }
+    };
+
+    return {
+      idEnvios: vistaEnvio.idEnvios,
+      idCliente: vistaEnvio.idCliente,
+      idRuta: vistaEnvio.idRuta,
+      fechaSolicitud: formatearFecha(vistaEnvio.fechaSolicitud),
+      fechaEntregaEsperada: formatearFecha(vistaEnvio.fechaEntregaEsperada),
+      estado: vistaEnvio.estado,
+      mercancia: vistaEnvio.mercancia,
+      pesoTotal: vistaEnvio.peso,
+      volumenTotal: vistaEnvio.volumen,
+      CostoEnvio: vistaEnvio.costo,
+    };
+  };
+
+  useEffect(() => {
+    obtenerEnvios();
+    obtenerClientes();
+    obtenerRutas();
+  }, []);
+
+  const abrirModal = (envioTabla?: IVistaEnvioParaTabla) => {
+    if (envioTabla) {
+      console.log("Envío original de la vista:", envioTabla);
+      
+      const envioOriginal = envios.find(e => e.idEnvios === envioTabla.idEnvios);
+      if (envioOriginal) {
+        const envioConvertido = convertirVistaEnvioAEnvios(envioOriginal);
+        console.log("Envío convertido para el modal:", envioConvertido);
+        setSelectedEnvio(envioConvertido);
+      }
+    } else {
+      console.log("Abriendo modal para nuevo envío");
+      setSelectedEnvio(undefined);
+    }
+    setModalOpen(true);
+  };
+
+  const cerrarModal = () => {
+    setSelectedEnvio(undefined);
+    setModalOpen(false);
   };
 
   return (
-    <Container className="mt-5">
-      <Row>
-        <Col sm={{ size: 8, offset: 2 }}>
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h4 className="m-0">Lista de Envíos</h4>
-            <div className="d-flex gap-2">
-              <Button
-                className="btn btn-secondary btn-sm shadow-sm"
-                onClick={() => handleViewChange("dashboard")}
-              >
-                <i className="bi bi-house-door me-2" />
-                Inicio
-              </Button>
-              <Button color="success" onClick={onNuevo}>
-                <i className="bi bi-plus-circle me-2" />
-                Nuevo Envío
-              </Button>
-            </div>
-          </div>
-
-          <Table
-            bordered
-            hover
-            responsive
-            className="align-middle text-center table-striped table-bordered text-nowrap"
+    <div className="mt-2">
+      <div className="d-flex justify-content-between align-items-center mb-3 px-3">
+        <h4 className="m-0">Lista de Envíos</h4>
+        <div className="d-flex gap-2">
+          <Button
+            color="secondary"
+            size="sm"
+            onClick={() => handleViewChange("dashboard")}
           >
-            <thead>
-              <tr>
-                <th>Cliente</th>
-                <th>Ruta</th>
-                <th>Fecha Solicitud</th>
-                <th>Entrega Esperada</th>
-                <th>Estado</th>
-                <th>Mercancía</th>
-                <th>Peso (kg)</th>
-                <th>Volumen (m³)</th>
-                <th>Costo ($)</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {envios.map((item) => (
-                <tr key={item.idEnvios}>
-                    <td>{item.cliente}</td>
-                    <td>{item.origen} → {item.destino}</td>
-                    <td>{item.fechaSolicitud}</td>
-                    <td>{item.fechaEntregaEsperada}</td>
-                    <td>{item.estado}</td>
-                    <td>{item.mercancia}</td>
-                    <td>{item.peso}</td>
-                    <td>{item.volumen}</td>
-                    <td>{item.costo}</td>
-                  <td>
-                    <div className="d-flex justify-content-center gap-2">
-                      <Button
-                        size="sm"
-                        color="primary"
-                        onClick={() => onEditar(item.idEnvios)}
-                      >
-                        <i className="bi bi-pencil-square" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        color="danger"
-                        onClick={() => Eliminar(item.idEnvios!)}
-                      >
-                        <i className="bi bi-trash" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </Col>
-      </Row>
+            <i className="bi bi-house-door me-2" />
+            Inicio
+          </Button>
+          <Button color="success" size="sm" onClick={() => abrirModal()}>
+            <i className="bi bi-plus-circle me-2" />
+            Nuevo Envío
+          </Button>
+        </div>
+      </div>
+
+      
+      <DataTable<IVistaEnvioParaTabla>
+        data={enviosParaTabla}
+        searchKeys={[
+          "estado",
+          "mercancia",
+          "fechaSolicitud",
+          "fechaEntregaEsperada",
+          "cliente",
+          "origenCorto", 
+          "destinoCorto", 
+        ]}
+        itemsPerPageOptions={[5, 10, 15]}
+        defaultItemsPerPage={5}
+        onEditar={(envio) => abrirModal(envio)}
+        onEliminar={(id) => eliminarEnvio(id)}
+        onNuevo={() => abrirModal()}
+        columns={[
+          { key: "cliente", label: "Cliente" },
+          { 
+            key: "origenCorto", 
+            label: "Origen",
+            
+            render: (item: IVistaEnvioParaTabla) => (
+              <span title={item.origen}>
+                {item.origenCorto}
+              </span>
+            )
+          },
+          { 
+            key: "destinoCorto", 
+            label: "Destino",
+            
+            render: (item: IVistaEnvioParaTabla) => (
+              <span title={item.destino}>
+                {item.destinoCorto}
+              </span>
+            )
+          },
+          { key: "fechaSolicitud", label: "Fecha Solicitud" },
+          { key: "fechaEntregaEsperada", label: "Fecha Entrega Esperada" },
+          { key: "estado", label: "Estado" },
+          { key: "mercancia", label: "Mercancía" },
+          { key: "peso", label: "Peso (kg)" },
+          { key: "volumen", label: "Volumen (m³)" },
+          { key: "costo", label: "Costo Envío" },
+        ]}
+      />
 
       <EnviosModal
         isOpen={modalOpen}
-        toggle={toggleModal}
+        toggle={cerrarModal}
         envio={selectedEnvio}
-        onSuccess={obtenerEnvios}
+        clientes={clientes}
+        rutas={rutas}
+        onSuccess={() => {
+          cerrarModal();
+          obtenerEnvios();
+        }}
       />
-    </Container>
+    </div>
   );
 }

@@ -1,5 +1,7 @@
 export interface IVistaEnvio {
   idEnvios: number;
+  idCliente: number;      
+  idRuta: number;         
   fechaSolicitud: string;
   fechaEntregaEsperada: string;
   estado: string;
@@ -9,5 +11,5 @@ export interface IVistaEnvio {
   cliente: string;
   origen: string;
   destino: string;
-  costo: number;
+  costo: number;  
 }
