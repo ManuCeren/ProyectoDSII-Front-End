@@ -225,7 +225,7 @@ export function FacturacionLista({ handleViewChange }: FacturacionListaProps) {
       <body>
         <div class="header">
           <div class="logo">
-            🚚 SISTEMA DE ENVÍOS
+            SISTEMA DE ENVÍOS
           </div>
           <div class="invoice-title">
             FACTURA
@@ -238,13 +238,11 @@ export function FacturacionLista({ handleViewChange }: FacturacionListaProps) {
             <p><strong>Número:</strong> #${facturacion.IdFacturacion.toString().padStart(6, '0')}</p>
             <p><strong>Fecha:</strong> ${new Date(facturacion.FechaFactura).toLocaleDateString('es-ES')}</p>
             <p><strong>Estado:</strong> <span class="status ${facturacion.EstadoPago.toLowerCase()}">${facturacion.EstadoPago}</span></p>
-            <p><strong>ID Envío:</strong> #${facturacion.IdEnvio}</p>
           </div>
           
           <div class="info-box">
             <h3>👤 Información del Cliente</h3>
             <p><strong>Cliente:</strong> ${facturacion.NombreCliente}</p>
-            <p><strong>ID Cliente:</strong> ${facturacion.IdCliente}</p>
             <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString('es-ES')}</p>
           </div>
         </div>
