@@ -23,7 +23,7 @@ const Mapa: React.FC<MapaProps> = ({ handleViewChange }) => {
     map.current = new mapboxgl.Map({
       container: mapContainer.current!,
       style: 'mapbox://styles/mapbox/streets-v12',
-      center: [-108.242637, 25.672577],
+      center: [-89.7196, 13.7175],
       zoom: 13,
     });
 
